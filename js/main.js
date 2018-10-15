@@ -337,6 +337,7 @@ $(document)
           editor.numBreakpoints++;
         }
       });
+
       function validatorCallbacks(message) {
         if (message.type == 'error') {
           $('#mensajes').trigger('error', {mensaje: message.message});
@@ -363,15 +364,19 @@ $(document)
       var fila_evento;
       var columna_evento;
       var mundo = new World(w, h);
+
       if (location.hash == '#debug') {
         mundo.runtime.debug = true;
       }
+
       addEventListeners(mundo);
+
       var mundo_editable = true;
       var linea_actual = null;
       var tab_actual = 'mensajes';
       var mensajes_no_leidos = 0;
       var currentCell = undefined;
+
       $('a[data-toggle="tab"]')
           .on('shown', function(e) {
             tab_actual = e.target.firstChild.nodeValue.toLowerCase().trim();
@@ -380,6 +385,7 @@ $(document)
               $('#mensajes_cuenta').html('');
             }
           });
+
       var src = null;
       if (sessionStorage) {
         var restoredSource = sessionStorage.getItem('karel.js:karelsource');
@@ -538,6 +544,7 @@ $(document)
             wRender.paint(mundo, world.width, world.height,
                           {editable: mundo_editable});
           });
+
       $('#mensajes')
           .bind('error', function(event, data) {
             var d = new Date();
@@ -552,6 +559,7 @@ $(document)
                         '</span>');
             }
           });
+
       $('#mensajes')
           .bind('info', function(event, data) {
             var d = new Date();
@@ -565,6 +573,7 @@ $(document)
                         '</span>');
             }
           });
+
       $('#mensajes')
           .bind('success', function(event, data) {
             var d = new Date();
@@ -579,6 +588,7 @@ $(document)
                         '</span>');
             }
           });
+
       $('#compilar')
           .click(function(event) {
             compile();
@@ -710,6 +720,7 @@ $(document)
                       });
             }
           });
+
       $('#save_out')
           .click(function(event) {
             var compiled = compile();
@@ -750,6 +761,7 @@ $(document)
                 .attr('href', window.URL.createObjectURL(blob))
                 .attr('download', 'mundo.out');
           });
+
       $('#ejecutar')
           .bind('lock', function(evt) {
             // Bloquea los controles de ejecución y edición
@@ -776,6 +788,7 @@ $(document)
 
             editor.setOption('readOnly', true);
           });
+
       $('#ejecutar')
           .bind('unlock', function(evt) {
             // Desbloquea los controles de ejecución
@@ -804,6 +817,7 @@ $(document)
 
             editor.setOption('readOnly', false);
           });
+
       $('#ejecutar')
           .click(function(event) {
             if ($('#ejecutar em').hasClass('icon-play')) {
@@ -850,6 +864,7 @@ $(document)
               $('#evaluacion').removeAttr('disabled');
             }
           });
+
       $('#paso')
           .click(function(event) {
             if (!mundo_editable) {
@@ -892,11 +907,13 @@ $(document)
                       });
             }
           });
+
       $('#rubysyntax')
           .click(function(event) {
             editor.setValue('#TODO poner codigo aqui');
             editor.focus();
           });
+
       $('#pascalsyntax')
           .click(function(event) {
             // editor.getSession().setMode("ace/mode/karelpascal");
@@ -905,6 +922,7 @@ $(document)
                 1);
             editor.focus();
           });
+
       $('#javasyntax')
           .click(function(event) {
             // editor.getSession().setMode("ace/mode/kareljava");
@@ -913,6 +931,7 @@ $(document)
                 1);
             editor.focus();
           });
+
       $('#retraso_minus')
           .click(function() {
             var valor = $('#retraso_txt').val() * 1;
@@ -925,6 +944,7 @@ $(document)
               }
             }
           });
+
       $('#retraso_plus')
           .click(function() {
             var valor = $('#retraso_txt').val() * 1;
@@ -937,6 +957,7 @@ $(document)
               }
             }
           });
+
       $('#retraso_txt')
           .blur(function(event) {
             var valor = $('#retraso_txt').val() * 1;
@@ -964,6 +985,7 @@ $(document)
             guardarMochila();
             $('#mochila').val(mundo.bagBuzzers);
           });
+
       $('#codeload')
           .click(function(event) {
             var file = document.createElement('input');
@@ -993,6 +1015,7 @@ $(document)
             });
             file.click();
           });
+
       $('#codesave')
           .click(function(event) {
             $('#guardar_modal').modal('show');
@@ -1002,6 +1025,7 @@ $(document)
                 .attr('href', window.URL.createObjectURL(blob))
                 .attr('download', 'karel.txt');
           });
+
       $('#worldload')
           .click(function(event) {
             var file = document.createElement('input');
@@ -1032,6 +1056,7 @@ $(document)
             });
             file.click();
           });
+
       $('#worldsave')
           .click(function(event) {
             $('#guardar_modal').modal('show');
@@ -1042,6 +1067,7 @@ $(document)
                 .attr('href', window.URL.createObjectURL(blob))
                 .attr('download', 'mundo.in');
           });
+
       $('#worldclean')
           .click(function(event) {
             if (linea_actual != null) {
@@ -1112,6 +1138,7 @@ $(document)
               $('#dump_deja_zumbador').button('toggle');
             }
           });
+
       $('#newworld')
           .click(function(event) {
             if (linea_actual != null) {
@@ -1156,14 +1183,16 @@ $(document)
               $('#dump_deja_zumbador').button('toggle');
             }
           });
+
       $('#theme')
           .click(function() {
             modalPrompt('tema', getTheme(), codeMirrorThemes)
                 .then(function(response) { setTheme(response); });
           });
+
       $('#evaluacion')
-          .click(function(event) { $('#evaluacion_modal')
-                                       .modal('show'); });
+          .click(function(event) { $('#evaluacion_modal') .modal('show'); });
+
       $('body')
           .keyup(function(event) {
             var repaint = false;
@@ -1284,6 +1313,7 @@ $(document)
             wRender.paint(mundo, world.width, world.height,
                           {editable: mundo_editable});
           });
+
       $('#world')
           .mousemove(function(event) {
             var x = event.offsetX || (event.clientX + document.body.scrollLeft +
@@ -1323,6 +1353,7 @@ $(document)
               }
             }
           });
+
       $('#world')
           .bind('contextmenu', function(event) {
             // Maneja el click derecho sobre el mundo
@@ -1349,7 +1380,9 @@ $(document)
               return false;
             }
           });
+
       $('#world');
+
       [0].onmousewheel = function(event) {
         if (event.wheelDeltaX < 0 &&
             (wRender.primera_columna + wRender.num_columnas) < w + 2) {
@@ -1369,6 +1402,7 @@ $(document)
                       {editable: mundo_editable});
         return false;
       };
+
       $('#world')
           .hammer()
           .on('drag', function(event) {
@@ -1412,6 +1446,7 @@ $(document)
             $(document.body).css('cursor', 'auto');
             currentCell = undefined;
           });
+
       $('#filas')
           .blur(function(event) {
             var valor = parseInt($(this).val());
@@ -1428,6 +1463,7 @@ $(document)
                           {editable: true, track_karel: true});
             $('#xmlMundo').html(mundo.save());
           });
+
       $('#columnas')
           .blur(function(event) {
             var valor = parseInt($(this).val());
@@ -1444,6 +1480,7 @@ $(document)
                           {editable: true, track_karel: true});
             $('#xmlMundo').html(mundo.save());
           });
+
       $('#inf_zumbadores')
           .click(function(event) {
             if ($(this).hasClass('active')) {  // ya hay infinitos
@@ -1459,6 +1496,7 @@ $(document)
             }
             $('#xmlMundo').html(mundo.save());
           });
+
       $('#quitar_zumbadores')
           .click(function(event) {
             if ($(this).hasClass('active')) {  // ya hay infinitos
@@ -1470,6 +1508,7 @@ $(document)
             }
             $('#xmlMundo').html(mundo.save());
           });
+
       $('#go_home')
           .click(function(event) {
             wRender.primera_fila = 1;
@@ -1477,6 +1516,7 @@ $(document)
             wRender.paint(mundo, world.width, world.height,
                           {editable: mundo_editable});
           });
+
       $('#follow_karel')
           .click(function(event) {
             wRender.primera_fila = mundo.i;
@@ -1484,46 +1524,55 @@ $(document)
             wRender.paint(mundo, world.width, world.height,
                           {editable: mundo_editable});
           });
+
       $('#posicion_karel')
           .click(function(event) {
             mundo.toggleDumps(World.DUMP_POSITION);
             $('#xmlMundo').html(mundo.save());
           });
+
       $('#orientacion_karel')
           .click(function(event) {
             mundo.toggleDumps(World.DUMP_ORIENTATION);
             $('#xmlMundo').html(mundo.save());
           });
+
       $('#mochila_karel')
           .click(function(event) {
             mundo.toggleDumps(World.DUMP_BAG);
             $('#xmlMundo').html(mundo.save());
           });
+
       $('#universo')
           .click(function(event) {
             mundo.toggleDumps(World.DUMP_ALL_BUZZERS);
             $('#xmlMundo').html(mundo.save());
           });
+
       $('#dump_avanza')
           .click(function(event) {
             mundo.toggleDumps(World.DUMP_MOVE);
             $('#xmlMundo').html(mundo.save());
           });
+
       $('#dump_gira_izquierda')
           .click(function(event) {
             mundo.toggleDumps(World.DUMP_LEFT);
             $('#xmlMundo').html(mundo.save());
           });
+
       $('#dump_coge_zumbador')
           .click(function(event) {
             mundo.toggleDumps(World.DUMP_PICK_BUZZER);
             $('#xmlMundo').html(mundo.save());
           });
+
       $('#dump_deja_zumbador')
           .click(function(event) {
             mundo.toggleDumps(World.DUMP_LEAVE_BUZZER);
             $('#xmlMundo').html(mundo.save());
           });
+
       $('#ctx_norte')
           .click(function(event) {
             mundo.move(fila_evento, columna_evento);
@@ -1533,6 +1582,7 @@ $(document)
                           {editable: mundo_editable});
             $('#xmlMundo').html(mundo.save());
           });
+
       $('#ctx_sur')
           .click(function(event) {
             mundo.move(fila_evento, columna_evento);
@@ -1542,6 +1592,7 @@ $(document)
                           {editable: mundo_editable});
             $('#xmlMundo').html(mundo.save());
           });
+
       $('#ctx_este')
           .click(function(event) {
             mundo.move(fila_evento, columna_evento);
@@ -1551,6 +1602,7 @@ $(document)
                           {editable: mundo_editable});
             $('#xmlMundo').html(mundo.save());
           });
+
       $('#ctx_oeste')
           .click(function(event) {
             mundo.move(fila_evento, columna_evento);
@@ -1560,6 +1612,7 @@ $(document)
                           {editable: mundo_editable});
             $('#xmlMundo').html(mundo.save());
           });
+
       $('#n_zumbadores')
           .click(function(event) {
             modalPrompt('¿Cuántos zumbadores?', '0')
@@ -1574,6 +1627,7 @@ $(document)
                     function() { $('#wcontext_menu')
                                      .css('display', 'none'); });
           });
+
       $('#inf_zumbadores_ctx')
           .click(function(event) {
             mundo.setBuzzers(fila_evento, columna_evento, -1);
@@ -1582,6 +1636,7 @@ $(document)
                           {editable: mundo_editable});
             $('#xmlMundo').html(mundo.save());
           });
+
       $('#cero_zumbadores')
           .click(function(event) {
             mundo.setBuzzers(fila_evento, columna_evento, 0);
@@ -1590,6 +1645,7 @@ $(document)
                           {editable: mundo_editable});
             $('#xmlMundo').html(mundo.save());
           });
+
       $('#toggle_dump_cell')
           .click(function(event) {
             mundo.toggleDumpCell(fila_evento, columna_evento);
@@ -1598,6 +1654,7 @@ $(document)
                           {editable: mundo_editable});
             $('#xmlMundo').html(mundo.save());
           });
+
       $('#importar')
           .submit(function(event) {
             var mdo = $('#importar_mdo')[0].files[0];
@@ -1656,20 +1713,25 @@ $(document)
             mdoReader.readAsArrayBuffer(mdo);
             return false;
           });
+
       $('#prompt_modal')
           .on('shown.bs.modal', function() { $('#prompt_value')
                                                  .select(); });
+
       function recalcDimensions() {
         world.width = $('#splitter-right-pane').width();
         world.height = $('#splitter-right-pane').height();
         wRender.paint(mundo, world.width, world.height,
                       {editable: mundo_editable});
       }
+
       Split(['#splitter-left-pane', '#splitter-right-pane'],
             {sizes: [30, 70], onDragEnd: recalcDimensions});
       Split(['#splitter-left-top-pane', '#splitter-left-bottom-pane'],
             {sizes: [70, 30], direction: 'vertical'});
+
       recalcDimensions();
+
       $(window).resize(recalcDimensions);
 
       // Expone varias cosas para que puedan ser accedidas desde las pruebas.
@@ -1687,6 +1749,4 @@ $(document)
                                      .empty(); },
         };
       }
-    });
-
-// vim: set expandtab:ts=2:sw=2
+});
