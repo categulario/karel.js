@@ -3,12 +3,12 @@
 %lex
 %%
 
-[\n]				{ return 'NEWLINE'; }
+[\n]                            { return 'NEWLINE'; }
 \s+                             {/* ignore */}
-\#[^\n]*			{/* ignore */}
-"def"				{ return 'DEF'; }
+\#[^\n]*                        {/* ignore */}
+"def"                           { return 'DEF'; }
 "apagate"                       { return 'HALT'; }
-"sal-de-instruccion"		{ return 'RET'; }
+"sal-de-instruccion"            { return 'RET'; }
 "gira-izquierda"                { return 'LEFT'; }
 "avanza"                        { return 'FORWARD'; }
 "coge-zumbador"	                { return 'PICKBUZZER'; }
@@ -57,7 +57,7 @@
 function validate(function_list, program, yy) {
 	var functions = {};
 	var prototypes = {};
-	
+
 	for (var i = 0; i < function_list.length; i++) {
 		if (functions[function_list[i][0]]) {
 			yy.parser.parseError("Function redefinition: " + function_list[i][0], {
@@ -65,7 +65,7 @@ function validate(function_list, program, yy) {
 				line: function_list[i][3]
 			});
 		}
-		
+
 		functions[function_list[i][0]] = program.length;
 		prototypes[function_list[i][0]] = function_list[i][2];
 		program = program.concat(function_list[i][1]);
@@ -87,7 +87,7 @@ function validate(function_list, program, yy) {
 					line: current_line
 				});
 			}
-			
+
 			program[i][2] = program[i][1];
 			program[i][1] = functions[program[i][1]];
 		} else if (program[i][0] == 'PARAM' && program[i][1] != 0) {
@@ -97,7 +97,7 @@ function validate(function_list, program, yy) {
 			});
 		}
 	}
-	
+
 	return program;
 }
 %}
@@ -108,7 +108,7 @@ program
   : opt_newlines def_expr_list opt_newlines EOF
     { return validate($def_expr_list[0], $def_expr_list[1].concat([['LINE', yylineno], ['HALT']]), yy); }
   ;
-  
+
 def_expr_list
   : def_expr_list newlines def
     { $$ = [$def_expr_list[0].concat($def), $def_expr_list[1]]; }
@@ -126,7 +126,7 @@ expr_list
   | expr newlines
     { $$ = $expr; }
   ;
- 
+
 opt_newlines
   : newlines
   |
@@ -142,7 +142,7 @@ def
     { $$ = [[$var, $line.concat($expr_list).concat([['RET']])], 1]; }
   | DEF line var '(' var ')' newlines expr_list END
     %{
-    	var result = $line.concat($expr_list).concat([['RET']]);	
+    	var result = $line.concat($expr_list).concat([['RET']]);
     	for (var i = 0; i < result.length; i++) {
     		if (result[i][0] == 'PARAM') {
     			if (result[i][1] == $5) {
@@ -193,7 +193,7 @@ loop
   : WHILE line term newlines expr_list END
     { $$ = $term.concat($line).concat([['JZ', 1 + $expr_list.length]]).concat($expr_list).concat([['JMP', -1 -($term.length + 1 + $expr_list.length + 1)]]); }
   ;
-  
+
 call
   : var
     { $$ = [['LINE', yylineno], ['LOAD', 0], ['CALL', $var, 1], ['LINE', yylineno]]; }
