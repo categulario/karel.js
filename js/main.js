@@ -54,23 +54,6 @@ $(document)
         }
       }
 
-      function addEventListeners(world) {
-        world.runtime.addEventListener('debug',
-                                       function(evt) { console.log(evt); });
-        world.runtime.addEventListener('call', function(evt) {
-          $('#pila')
-              .prepend('<div class="well well-small">' + evt.function + '(' +
-                       evt.param + ') Línea <span class="badge badge-info">' +
-                       (evt.line + 1) + '</span></div>');
-        });
-        world.runtime.addEventListener('return', function(evt) {
-          var arreglo = $('#pila > div:first-child').remove();
-        });
-        world.runtime.addEventListener('start', function(evt) {
-          var arreglo = $('#pila > div:first-child').remove();
-        });
-      }
-
       function getSyntax(str) {
         var parser = getParser(str);
         parser.parser.yy.parseError = parseError;
@@ -270,8 +253,6 @@ $(document)
       if (location.hash == '#debug') {
         mundo.runtime.debug = true;
       }
-
-      addEventListeners(mundo);
 
       var mundo_editable = true;
       var linea_actual = null;
@@ -1056,7 +1037,6 @@ $(document)
             if (location.hash == '#debug') {
               mundo.runtime.debug = true;
             }
-            addEventListeners(mundo);
             wRender.paint(mundo, canvas.width, canvas.height,
                           {editable: true, track_karel: true});
             $('#xmlMundo').html(mundo.save());
@@ -1334,7 +1314,6 @@ $(document)
             }
             h = valor;
             mundo.resize(w, h);
-            addEventListeners(mundo);
             wRender = new WorldRender(context, h, w);
             wRender.paint(mundo, canvas.width, canvas.height,
                           {editable: true, track_karel: true});
@@ -1351,7 +1330,6 @@ $(document)
             }
             w = valor;
             mundo.resize(w, h);
-            addEventListeners(mundo);
             wRender = new WorldRender(context, h, w);
             wRender.paint(mundo, canvas.width, canvas.height,
                           {editable: true, track_karel: true});
@@ -1545,7 +1523,6 @@ $(document)
                     $('#worldclean').click();
                     mundo.import(new Uint16Array(mdo),
                                  new Uint16Array(kecReader.result));
-                    addEventListeners(mundo);
                     wRender.paint(mundo, canvas.width, canvas.height,
                                   {editable: mundo_editable});
                     $('#xmlMundo').html(mundo.save());
