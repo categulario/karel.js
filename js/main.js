@@ -204,6 +204,7 @@ $(document)
           'CodeMirror-linenumbers'
         ],
       });
+
       editor.numBreakpoints = 0;
       editor.on('gutterClick', function(instance, line, gutter, clickEvent) {
         if (gutter == 'CodeMirror-foldgutter') return;
@@ -792,30 +793,6 @@ $(document)
                         compiled = null;
                       });
             }
-          });
-
-      $('#rubysyntax')
-          .click(function(event) {
-            editor.setValue('#TODO poner codigo aqui');
-            editor.focus();
-          });
-
-      $('#pascalsyntax')
-          .click(function(event) {
-            // editor.getSession().setMode("ace/mode/karelpascal");
-            editor.setValue(
-                'iniciar-programa\n    inicia-ejecucion\n        { TODO poner codigo aquí }\n        apagate;\n    termina-ejecucion\nfinalizar-programa',
-                1);
-            editor.focus();
-          });
-
-      $('#javasyntax')
-          .click(function(event) {
-            // editor.getSession().setMode("ace/mode/kareljava");
-            editor.setValue(
-                'class program {\n    program () {\n        // TODO poner codigo aqui\n        turnoff();\n    }\n}',
-                1);
-            editor.focus();
           });
 
       $('#retraso_minus')
