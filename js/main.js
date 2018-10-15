@@ -1,68 +1,5 @@
 $(document)
     .ready(function() {
-      var codeMirrorThemes = [
-        'karel',
-        '3024-day',
-        '3024-night',
-        'abcdef',
-        'ambiance',
-        'ambiance-mobile',
-        'base16-dark',
-        'base16-light',
-        'bespin',
-        'blackboard',
-        'cobalt',
-        'colorforth',
-        'dracula',
-        'eclipse',
-        'elegant',
-        'erlang-dark',
-        'hopscotch',
-        'icecoder',
-        'isotope',
-        'lesser-dark',
-        'liquibyte',
-        'material',
-        'mbo',
-        'mdn-like',
-        'midnight',
-        'monokai',
-        'neat',
-        'neo',
-        'night',
-        'paraiso-dark',
-        'paraiso-light',
-        'pastel-on-dark',
-        'railscasts',
-        'rubyblue',
-        'seti',
-        'solarized',
-        'the-matrix',
-        'tomorrow-night-bright',
-        'tomorrow-night-eighties',
-        'ttcn',
-        'twilight',
-        'vibrant-ink',
-        'xq-dark',
-        'xq-light',
-        'yeti',
-        'zenburn',
-      ];
-
-      function getTheme() {
-        return (typeof(sessionStorage) !== 'undefined' &&
-                sessionStorage.getItem('karel.js:theme')) ||
-               'karel';
-      }
-
-      function setTheme(theme) {
-        if (codeMirrorThemes.indexOf(theme) === -1) return;
-        editor.setOption('theme', theme);
-        if (typeof(sessionStorage) !== 'undefined') {
-          sessionStorage.setItem('karel.js:theme', theme);
-        }
-      }
-
       function getParser(str) {
         language = detectLanguage(str);
 
@@ -150,43 +87,8 @@ $(document)
       }
 
       function modalPrompt(label, value, options) {
-        var dfd = jQuery.Deferred();
-        $('#prompt_modal h4').html(label);
-        $('#prompt_modal label').html(label);
-        $('#prompt_modal .form-group').hide();
-        if (options) {
-          $('#prompt_modal .group-select').show();
-          $('#prompt_modal select').empty();
-          for (var i = 0; i < options.length; i++) {
-            $('#prompt_modal select')
-                .append($('<option/>').text(options[i]).val(options[i]));
-          }
-          $('#prompt_modal select').focus().val(value);
-        } else {
-          $('#prompt_modal .group-value').show();
-          $('#prompt_modal input[type="text"]').focus().val(value);
-        }
-        $('#prompt_modal').modal('show');
-        function resolve(e) {
-          if (options) {
-            dfd.resolve($('#prompt-select').val());
-          } else {
-            dfd.resolve($('#prompt-value').val());
-          }
-          $('#prompt_modal').modal('hide');
-          return false;
-        }
-        $('#prompt_modal form').on('submit', resolve);
-        $('#prompt_modal button.btn-primary').on('click', resolve);
-        $('#prompt_modal')
-            .on('hidden.bs.modal', function() {
-              $('#prompt_modal form').off('submit', resolve);
-              $('#prompt_modal button.btn-primary').off('click', resolve);
-              if (dfd.state() == 'pending') {
-                dfd.reject();
-              }
-            });
-        return dfd;
+        // shows a modal that asks for someting  and returns a promise that
+        // resolves to the selected or provided value
       }
 
       var ERROR_CODES = {
@@ -308,7 +210,7 @@ $(document)
         styleActiveLine: true,
         viewportMargin: Infinity,
         mode: 'karelpascal',
-        theme: getTheme(),
+        theme: 'karel',
         foldGutter: {
           rangeFinder: CodeMirror.fold.indent,
         },
@@ -354,10 +256,10 @@ $(document)
         }
       }
 
-      var world = $('#world')[0];
+      var canvas = $('#world')[0];
       var h = 100;
       var w = 100;
-      var context = world.getContext('2d');
+      var context = canvas.getContext('2d');
       var wRender = new WorldRender(context, h, w);
       var borrar_zumbadores = false;
       var zumbadores_anterior = 0;
@@ -397,14 +299,17 @@ $(document)
           src = restoredWorld;
         }
       }
+
       if (document.location.hash.indexOf('#mundo:') === 0) {
         src = decodeURIComponent(document.location.hash.substring(7));
       } else if (!src) {
         src = $('script#xmlMundo').html();
       }
+
       mundo.load(parseWorld(src));
+
       $('#world').attr('width', $('#world').width());
-      wRender.paint(mundo, world.width, world.height,
+      wRender.paint(mundo, canvas.width, canvas.height,
                     {editable: mundo_editable});
 
       var interval = null;
@@ -446,7 +351,7 @@ $(document)
 
         if (mundo.dirty) {
           mundo.dirty = false;
-          wRender.paint(mundo, world.width, world.height, {track_karel: true});
+          wRender.paint(mundo, canvas.width, canvas.height, {track_karel: true});
         }
 
         if (!mundo.runtime.state.running) {
@@ -541,7 +446,7 @@ $(document)
       $(window)
           .resize(function(event) {
             $('#world').attr('width', $('#world').width());
-            wRender.paint(mundo, world.width, world.height,
+            wRender.paint(mundo, canvas.width, canvas.height,
                           {editable: mundo_editable});
           });
 
@@ -628,7 +533,7 @@ $(document)
           mundo.runtime.disableStackEvents = false;
         }
         highlightCurrentLine();
-        wRender.paint(mundo, world.width, world.height, {track_karel: true});
+        wRender.paint(mundo, canvas.width, canvas.height, {track_karel: true});
         mensaje_final();
         // Aún no se permite editar el mundo, pero se podrá si se regresa a su
         // estado original.
@@ -736,7 +641,7 @@ $(document)
             while (mundo.runtime.step())
               ;
             mundo.runtime.disableStackEvents = false;
-            wRender.paint(mundo, world.width, world.height,
+            wRender.paint(mundo, canvas.width, canvas.height,
                           {track_karel: true});
             if (mundo.runtime.state.error) {
               $('#mensajes')
@@ -1103,7 +1008,7 @@ $(document)
             } else {
               $('#mochila').val(mundo.bagBuzzers).removeAttr('disabled');
             }
-            wRender.paint(mundo, world.width, world.height,
+            wRender.paint(mundo, canvas.width, canvas.height,
                           {editable: true, track_karel: true});
             if ($('#posicion_karel').hasClass('active') !=
                 mundo.getDumps(World.DUMP_POSITION)) {
@@ -1152,7 +1057,7 @@ $(document)
               mundo.runtime.debug = true;
             }
             addEventListeners(mundo);
-            wRender.paint(mundo, world.width, world.height,
+            wRender.paint(mundo, canvas.width, canvas.height,
                           {editable: true, track_karel: true});
             $('#xmlMundo').html(mundo.save());
             if ($('#posicion_karel').hasClass('active')) {
@@ -1182,12 +1087,6 @@ $(document)
             if ($('#dump_deja_zumbador').hasClass('active')) {
               $('#dump_deja_zumbador').button('toggle');
             }
-          });
-
-      $('#theme')
-          .click(function() {
-            modalPrompt('tema', getTheme(), codeMirrorThemes)
-                .then(function(response) { setTheme(response); });
           });
 
       $('#evaluacion')
@@ -1236,7 +1135,7 @@ $(document)
                     .then(function(response) {
                       mundo.setBuzzers(currentCell.row, currentCell.column,
                                        response);
-                      wRender.paint(mundo, world.width, world.height,
+                      wRender.paint(mundo, canvas.width, canvas.height,
                                     {editable: mundo_editable});
                       $('#xmlMundo').html(mundo.save());
                     });
@@ -1252,7 +1151,7 @@ $(document)
             }
 
             if (repaint) {
-              wRender.paint(mundo, world.width, world.height,
+              wRender.paint(mundo, canvas.width, canvas.height,
                             {editable: mundo_editable});
             }
             if (saveWorld) {
@@ -1310,7 +1209,7 @@ $(document)
               $('#xmlMundo').html(mundo.save());
             }
             // Volvemos a pintar el canvas
-            wRender.paint(mundo, world.width, world.height,
+            wRender.paint(mundo, canvas.width, canvas.height,
                           {editable: mundo_editable});
           });
 
@@ -1322,33 +1221,33 @@ $(document)
             var y = event.offsetY || (event.clientY + document.body.scrollTop +
                                       document.documentElement.scrollTop -
                                       $('#world').offset().top);
-            var cellInfo = wRender.calculateCell(x, world.height - y);
+            var cellInfo = wRender.calculateCell(x, canvas.height - y);
 
             changed = !((currentCell) && cellInfo.row == currentCell.row &&
                         cellInfo.column == currentCell.column &&
                         cellInfo.kind == currentCell.kind);
             currentCell = cellInfo;
             if (mundo_editable && changed) {
-              wRender.paint(mundo, world.width, world.height,
+              wRender.paint(mundo, canvas.width, canvas.height,
                             {editable: mundo_editable});
               if (cellInfo.kind == Kind.Corner) {
                 if (wRender.polygon) {
                   wRender.polygonUpdate(cellInfo.row, cellInfo.column);
-                  wRender.paint(mundo, world.width, world.height,
+                  wRender.paint(mundo, canvas.width, canvas.height,
                                 {editable: mundo_editable});
                 }
-                wRender.hoverCorner(cellInfo.row, cellInfo.column, world.width,
-                                    world.height);
+                wRender.hoverCorner(cellInfo.row, cellInfo.column, canvas.width,
+                                    canvas.height);
               } else {
                 if (cellInfo.kind == Kind.WestWall) {
                   wRender.hoverWall(cellInfo.row, cellInfo.column, 0,
-                                    world.width, world.height);  // oeste
+                                    canvas.width, canvas.height);  // oeste
                 } else if (cellInfo.kind == Kind.SouthWall) {
                   wRender.hoverWall(cellInfo.row, cellInfo.column, 3,
-                                    world.width, world.height);  // sur
+                                    canvas.width, canvas.height);  // sur
                 } else if (cellInfo.kind == Kind.Beeper) {
                   wRender.hoverBuzzer(cellInfo.row, cellInfo.column,
-                                      world.width, world.height);
+                                      canvas.width, canvas.height);
                 }
               }
             }
@@ -1364,7 +1263,7 @@ $(document)
               columna_evento =
                   Math.floor(event.offsetX / wRender.tamano_celda) +
                   wRender.primera_columna - 1;
-              fila_evento = Math.floor((world.height - event.offsetY) /
+              fila_evento = Math.floor((canvas.height - event.offsetY) /
                                        wRender.tamano_celda) +
                             wRender.primera_fila - 1;
 
@@ -1380,28 +1279,6 @@ $(document)
               return false;
             }
           });
-
-      $('#world');
-
-      [0].onmousewheel = function(event) {
-        if (event.wheelDeltaX < 0 &&
-            (wRender.primera_columna + wRender.num_columnas) < w + 2) {
-          wRender.primera_columna += 1;
-        } else if (event.wheelDeltaX > 0 && wRender.primera_columna > 1) {
-          wRender.primera_columna -= 1;
-        }
-
-        if (event.wheelDeltaY > 0 &&
-            (wRender.primera_fila + wRender.num_filas) < h + 2) {
-          wRender.primera_fila += 1;
-        } else if (event.wheelDeltaY < 0 && wRender.primera_fila > 1) {
-          wRender.primera_fila -= 1;
-        }
-
-        wRender.paint(mundo, world.width, world.height,
-                      {editable: mundo_editable});
-        return false;
-      };
 
       $('#world')
           .hammer()
@@ -1426,7 +1303,7 @@ $(document)
               wRender.primera_fila -= 1;
             }
 
-            wRender.paint(mundo, world.width, world.height,
+            wRender.paint(mundo, canvas.width, canvas.height,
                           {editable: mundo_editable});
           });
 
@@ -1459,7 +1336,7 @@ $(document)
             mundo.resize(w, h);
             addEventListeners(mundo);
             wRender = new WorldRender(context, h, w);
-            wRender.paint(mundo, world.width, world.height,
+            wRender.paint(mundo, canvas.width, canvas.height,
                           {editable: true, track_karel: true});
             $('#xmlMundo').html(mundo.save());
           });
@@ -1476,7 +1353,7 @@ $(document)
             mundo.resize(w, h);
             addEventListeners(mundo);
             wRender = new WorldRender(context, h, w);
-            wRender.paint(mundo, world.width, world.height,
+            wRender.paint(mundo, canvas.width, canvas.height,
                           {editable: true, track_karel: true});
             $('#xmlMundo').html(mundo.save());
           });
@@ -1513,7 +1390,7 @@ $(document)
           .click(function(event) {
             wRender.primera_fila = 1;
             wRender.primera_columna = 1;
-            wRender.paint(mundo, world.width, world.height,
+            wRender.paint(mundo, canvas.width, canvas.height,
                           {editable: mundo_editable});
           });
 
@@ -1521,7 +1398,7 @@ $(document)
           .click(function(event) {
             wRender.primera_fila = mundo.i;
             wRender.primera_columna = mundo.j;
-            wRender.paint(mundo, world.width, world.height,
+            wRender.paint(mundo, canvas.width, canvas.height,
                           {editable: mundo_editable});
           });
 
@@ -1578,7 +1455,7 @@ $(document)
             mundo.move(fila_evento, columna_evento);
             mundo.rotate('NORTE');
             $('#wcontext_menu').css('display', 'none');
-            wRender.paint(mundo, world.width, world.height,
+            wRender.paint(mundo, canvas.width, canvas.height,
                           {editable: mundo_editable});
             $('#xmlMundo').html(mundo.save());
           });
@@ -1588,7 +1465,7 @@ $(document)
             mundo.move(fila_evento, columna_evento);
             mundo.rotate('SUR');
             $('#wcontext_menu').css('display', 'none');
-            wRender.paint(mundo, world.width, world.height,
+            wRender.paint(mundo, canvas.width, canvas.height,
                           {editable: mundo_editable});
             $('#xmlMundo').html(mundo.save());
           });
@@ -1598,7 +1475,7 @@ $(document)
             mundo.move(fila_evento, columna_evento);
             mundo.rotate('ESTE');
             $('#wcontext_menu').css('display', 'none');
-            wRender.paint(mundo, world.width, world.height,
+            wRender.paint(mundo, canvas.width, canvas.height,
                           {editable: mundo_editable});
             $('#xmlMundo').html(mundo.save());
           });
@@ -1608,7 +1485,7 @@ $(document)
             mundo.move(fila_evento, columna_evento);
             mundo.rotate('OESTE');
             $('#wcontext_menu').css('display', 'none');
-            wRender.paint(mundo, world.width, world.height,
+            wRender.paint(mundo, canvas.width, canvas.height,
                           {editable: mundo_editable});
             $('#xmlMundo').html(mundo.save());
           });
@@ -1620,7 +1497,7 @@ $(document)
                     function(response) {
                       mundo.setBuzzers(fila_evento, columna_evento, response);
                       $('#wcontext_menu').css('display', 'none');
-                      wRender.paint(mundo, world.width, world.height,
+                      wRender.paint(mundo, canvas.width, canvas.height,
                                     {editable: mundo_editable});
                       $('#xmlMundo').html(mundo.save());
                     },
@@ -1632,7 +1509,7 @@ $(document)
           .click(function(event) {
             mundo.setBuzzers(fila_evento, columna_evento, -1);
             $('#wcontext_menu').css('display', 'none');
-            wRender.paint(mundo, world.width, world.height,
+            wRender.paint(mundo, canvas.width, canvas.height,
                           {editable: mundo_editable});
             $('#xmlMundo').html(mundo.save());
           });
@@ -1641,7 +1518,7 @@ $(document)
           .click(function(event) {
             mundo.setBuzzers(fila_evento, columna_evento, 0);
             $('#wcontext_menu').css('display', 'none');
-            wRender.paint(mundo, world.width, world.height,
+            wRender.paint(mundo, canvas.width, canvas.height,
                           {editable: mundo_editable});
             $('#xmlMundo').html(mundo.save());
           });
@@ -1650,7 +1527,7 @@ $(document)
           .click(function(event) {
             mundo.toggleDumpCell(fila_evento, columna_evento);
             $('#wcontext_menu').css('display', 'none');
-            wRender.paint(mundo, world.width, world.height,
+            wRender.paint(mundo, canvas.width, canvas.height,
                           {editable: mundo_editable});
             $('#xmlMundo').html(mundo.save());
           });
@@ -1669,7 +1546,7 @@ $(document)
                     mundo.import(new Uint16Array(mdo),
                                  new Uint16Array(kecReader.result));
                     addEventListeners(mundo);
-                    wRender.paint(mundo, world.width, world.height,
+                    wRender.paint(mundo, canvas.width, canvas.height,
                                   {editable: mundo_editable});
                     $('#xmlMundo').html(mundo.save());
                     $('#importar_modal').modal('hide');
@@ -1719,9 +1596,9 @@ $(document)
                                                  .select(); });
 
       function recalcDimensions() {
-        world.width = $('#splitter-right-pane').width();
-        world.height = $('#splitter-right-pane').height();
-        wRender.paint(mundo, world.width, world.height,
+        canvas.width = $('#splitter-right-pane').width();
+        canvas.height = $('#splitter-right-pane').height();
+        wRender.paint(mundo, canvas.width, canvas.height,
                       {editable: mundo_editable});
       }
 
@@ -1733,20 +1610,4 @@ $(document)
       recalcDimensions();
 
       $(window).resize(recalcDimensions);
-
-      // Expone varias cosas para que puedan ser accedidas desde las pruebas.
-      if (window) {
-        window.state = {
-          mundo: mundo,
-          editor: editor,
-
-          init: function(world, code) {
-            $('script#xmlMundo').html(world);
-            editor.setValue(code);
-            $('#worldclean').click();
-          },
-          cleanLog: function() { $('#mensajes')
-                                     .empty(); },
-        };
-      }
 });
