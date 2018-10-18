@@ -188,40 +188,7 @@ $(document)
 
       // Preparación del editor
       var editor = CodeMirror.fromTextArea(document.getElementById('editor'), {
-        lineNumbers: true,
-        firstLineNumber: 1,
-        styleActiveLine: true,
-        viewportMargin: Infinity,
-        mode: 'karelpascal',
-        theme: 'karel',
-        foldGutter: {
-          rangeFinder: CodeMirror.fold.indent,
-        },
-        gutters: [
-          'CodeMirror-foldgutter',
-          'errors',
-          'breakpoints',
-          'CodeMirror-linenumbers'
-        ],
-      });
-
-      editor.numBreakpoints = 0;
-      editor.on('gutterClick', function(instance, line, gutter, clickEvent) {
-        if (gutter == 'CodeMirror-foldgutter') return;
-        function makeBreakpoint() {
-          var marker = document.createElement('div');
-          marker.style.color = '#822';
-          marker.innerHTML = '●';
-          return marker;
-        }
-        var markers = instance.lineInfo(line).gutterMarkers;
-        if (markers && markers.breakpoints) {
-          instance.setGutterMarker(line, 'breakpoints', null);
-          editor.numBreakpoints--;
-        } else {
-          instance.setGutterMarker(line, 'breakpoints', makeBreakpoint());
-          editor.numBreakpoints++;
-        }
+        // editor options
       });
 
       function validatorCallbacks(message) {
@@ -260,36 +227,12 @@ $(document)
       var tab_actual = 'mensajes';
       var mensajes_no_leidos = 0;
       var currentCell = undefined;
-
-      $('a[data-toggle="tab"]')
-          .on('shown', function(e) {
-            tab_actual = e.target.firstChild.nodeValue.toLowerCase().trim();
-            if (tab_actual == 'mensajes') {
-              mensajes_no_leidos = 0;
-              $('#mensajes_cuenta').html('');
-            }
-          });
-
       var src = null;
-      if (sessionStorage) {
-        var restoredSource = sessionStorage.getItem('karel.js:karelsource');
-        if (restoredSource) {
-          editor.setValue(restoredSource);
-        }
-        var restoredWorld = sessionStorage.getItem('karel.js:karelworld');
-        if (restoredWorld) {
-          src = restoredWorld;
-        }
-      }
 
-      if (document.location.hash.indexOf('#mundo:') === 0) {
-        src = decodeURIComponent(document.location.hash.substring(7));
-      } else if (!src) {
-        src = $('script#xmlMundo').html();
-      }
-
+      // load a parsed xml world
       mundo.load(parseWorld(src));
 
+      // set width and repaint
       $('#world').attr('width', $('#world').width());
       wRender.paint(mundo, canvas.width, canvas.height,
                     {editable: mundo_editable});
@@ -297,16 +240,7 @@ $(document)
       var interval = null;
 
       function highlightCurrentLine() {
-        if (linea_actual != null) {
-          editor.removeLineClass(linea_actual, 'background',
-                                 'karel-current-line');
-        }
-
-        if (mundo.runtime.state.line >= 0) {
-          linea_actual = mundo.runtime.state.line;
-          editor.addLineClass(linea_actual, 'background', 'karel-current-line');
-          editor.setCursor({line: linea_actual, ch: 0});
-        }
+        // logic to highlight a given line in the editor
       }
 
       function step() {
@@ -314,22 +248,6 @@ $(document)
         mundo.runtime.step();
 
         highlightCurrentLine();
-
-        var markers = editor.lineInfo(linea_actual).gutterMarkers;
-
-        if (markers && markers.breakpoints && interval) {
-          $('#mensajes')
-              .trigger(
-                  'info',
-                  {'mensaje': 'Breakpoint en la línea ' + (linea_actual + 1)});
-          clearInterval(interval);
-          interval = null;
-          $('#ejecutar em').removeClass('icon-pause').addClass('icon-play');
-          $('#worldclean').removeAttr('disabled');
-          $('#paso').removeAttr('disabled');
-          $('#futuro').removeAttr('disabled');
-          $('#evaluacion').removeAttr('disabled');
-        }
 
         if (mundo.dirty) {
           mundo.dirty = false;
@@ -339,371 +257,38 @@ $(document)
         if (!mundo.runtime.state.running) {
           clearInterval(interval);
           interval = null;
-          mensaje_final();
           highlightCurrentLine();
-          // Aún no se permite editar el mundo, pero se podrá si se regresa a su
-          // estado original.
-          $('#ejecutar').attr('disabled', 'disabled');
-          $('#paso').attr('disabled', 'disabled');
-          $('#futuro').attr('disabled', 'disabled');
-          $('#evaluacion').attr('disabled', 'disabled');
-          $('#worldclean').removeAttr('disabled');
         }
       }
 
       function compile() {
-        if (sessionStorage) {
-          sessionStorage.setItem('karel.js:karelsource', editor.getValue());
-          sessionStorage.setItem('karel.js:karelworld', mundo.save());
-        }
         var syntax = getSyntax(editor.getValue());
-        $('#pila').html('');
+
         try {
-          editor.clearGutter('errors');
-          var allMarks = editor.getAllMarks();
-          for (var i = 0; i < allMarks.length; i++) {
-            allMarks[i].clear();
-          }
           var compiled = syntax.parser.parse(editor.getValue());
-          if (location.hash == '#debug') {
-            console.log(JSON.stringify(compiled));
-          }
-          $('#mensajes')
-              .trigger('info', {
-                'mensaje': 'Programa compilado (sintaxis ' + syntax.name + ')'
-              });
           return compiled;
         } catch (e) {
           if (e.expected) {
-            e.message = 'Error de compilación en la línea ' + (e.line + 1) +
-                        ': "' + e.text + '"\n' +
-                        'Se encontró ' + ERROR_TOKENS[syntax.name][e.token] +
-                        ', se esperaba uno de:';
-            for (var i = 0; i < e.expected.length; i++) {
-              e.message +=
-                  ' ' + ERROR_TOKENS[syntax.name][e.expected[i].substring(
-                            1, e.expected[i].length - 1)];
-            }
+            // error con tratamiento?
           } else {
-            var translations = {
-              'Prototype redefinition': 'El prototipo ya había sido declarado',
-              'Function redefinition': 'La función ya había sido definida',
-              'Function parameter mismatch':
-                  'El número de parámetros de la llamada a función no coincide con el de su declaración',
-              'Prototype parameter mismatch':
-                  'El número de parámetros de la función no coincide con el de su prototipo',
-              'Undefined function': 'Función no definida',
-              'Unknown variable': 'Variable desconocida'
-            };
-            if (typeof e === 'string') {
-              var message = e;
-              e = new Error(e);
-              e.text = message.split(':')[1];
-              e.line = 0;
-              e.loc = {first_line: 0, last_line: 0};
-              console.log(e);
-            }
-            var message = e.message.split(':')[0];
-            e.message = 'Error de compilación en la línea ' + (e.line + 1) +
-                        '\n' + translations[message] + ': "' + e.text + '"';
+            // errores sin tratar?
           }
-          var marker = document.createElement('div');
-          marker.className = 'error';
-          marker.style.position = 'relative';
-          marker.innerHTML =
-              '<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAyJpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMC1jMDYwIDYxLjEzNDc3NywgMjAxMC8wMi8xMi0xNzozMjowMCAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RSZWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZVJlZiMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIENTNSBNYWNpbnRvc2giIHhtcE1NOkluc3RhbmNlSUQ9InhtcC5paWQ6QUM2OEZDQTQ4RTU0MTFFMUEzM0VFRTM2RUY1M0RBMjYiIHhtcE1NOkRvY3VtZW50SUQ9InhtcC5kaWQ6QUM2OEZDQTU4RTU0MTFFMUEzM0VFRTM2RUY1M0RBMjYiPiA8eG1wTU06RGVyaXZlZEZyb20gc3RSZWY6aW5zdGFuY2VJRD0ieG1wLmlpZDpBQzY4RkNBMjhFNTQxMUUxQTMzRUVFMzZFRjUzREEyNiIgc3RSZWY6ZG9jdW1lbnRJRD0ieG1wLmRpZDpBQzY4RkNBMzhFNTQxMUUxQTMzRUVFMzZFRjUzREEyNiIvPiA8L3JkZjpEZXNjcmlwdGlvbj4gPC9yZGY6UkRGPiA8L3g6eG1wbWV0YT4gPD94cGFja2V0IGVuZD0iciI/PkgXxbAAAAJbSURBVHjapFNNaBNBFH4zs5vdZLP5sQmNpT82QY209heh1ioWisaDRcSKF0WKJ0GQnrzrxasHsR6EnlrwD0TagxJabaVEpFYxLWlLSS822tr87m66ccfd2GKyVhA6MMybgfe97/vmPUQphd0sZjto9XIn9OOsvlu2nkqRzVU+6vvlzPf8W6bk8dxQ0NPbxAALgCgg2JkaQuhzQau/El0zbmUA7U0Es8v2CiYmKQJHGO1QICCLoqilMhkmurDAyapKgqItezi/USRdJqEYY4D5jCy03ht2yMkkvL91jTTX10qzyyu2hruPRN7jgbH+EOsXcMLgYiThEgAMhABW85oqy1DXdRIdvP1AHJ2acQXvDIrVHcdQNrEKNYSVMSZGMjEzIIAwDXIo+6G/FxcGnzkC3T2oMhLjre49sBB+RRcHLqdafK6sYdE/GGBwU1VpFNj0aN8pJbe+BkZyevUrvLl6Xmm0W9IuTc0DxrDNAJd5oEvI/KRsNC3bQyNjPO9yQ1YHcfj2QvfQc/5TUhJTBc2iM0U7AWDQtc1nJHvD/cfO2s7jaGkiTEfa/Ep8coLu7zmNmh8+dc5lZDuUeFAGUNA/OY6JVaypQ0vjr7XYjUvJM37vt+j1vuTK5DgVfVUoTjVe+y3/LxMxY2GgU+CSLy4cpfsYorRXuXIOi0Vt40h67uZFTdIo6nLaZcwUJWAzwNS0tBnqqKzQDnjdG/iPyZxo46HaKUpbvYkj8qYRTZsBhge+JHhZyh0x9b95JqjVJkT084kZIPwu/mPWqPgfQ5jXh2+92Ay7HedfAgwA6KDWafb4w3cAAAAASUVORK5CYII=" width="16" height="16"/><pre class="error-popup">' + e.message + '</pre>';
-          editor.setGutterMarker(e.line, 'errors', marker);
-          var first = {line: e.loc.first_line, ch: e.loc.first_column};
-          var last = {line: e.loc.last_line, ch: e.loc.last_column};
-          var options = {title: e.message, className: 'parse-error'};
-          var mark = editor.markText(first, last, options);
-          $('#mensajes')
-              .trigger('error', {
-                'mensaje': '<pre>' + e + '</pre> (sintaxis ' + syntax.name + ')'
-              });
+
+          // place a marker in the editor where the syntax error ocurred
+          // select the errored lines in the editor
           return null;
         }
       }
 
-      $(window)
-          .resize(function(event) {
-            $('#world').attr('width', $('#world').width());
-            wRender.paint(mundo, canvas.width, canvas.height,
-                          {editable: mundo_editable});
-          });
+      $(window).resize(function(event) {
+        $('#world').attr('width', $('#world').width());
+        wRender.paint(mundo, canvas.width, canvas.height, {editable: mundo_editable});
+      });
 
-      $('#mensajes')
-          .bind('error', function(event, data) {
-            var d = new Date();
-            $('#mensajes')
-                .prepend('<p class="text-error"><strong>[' +
-                         d.toLocaleString() + ']</strong> ' + data['mensaje'] +
-                         '</p>');
-            if (tab_actual != 'mensajes') {
-              mensajes_no_leidos++;
-              $('#mensajes_cuenta')
-                  .html('<span class="badge badge-info">' + mensajes_no_leidos +
-                        '</span>');
-            }
-          });
-
-      $('#mensajes')
-          .bind('info', function(event, data) {
-            var d = new Date();
-            $('#mensajes')
-                .prepend('<p class="text-info"><strong>[' + d.toLocaleString() +
-                         ']</strong> ' + data['mensaje'] + '</p>');
-            if (tab_actual != 'mensajes') {
-              mensajes_no_leidos++;
-              $('#mensajes_cuenta')
-                  .html('<span class="badge badge-info">' + mensajes_no_leidos +
-                        '</span>');
-            }
-          });
-
-      $('#mensajes')
-          .bind('success', function(event, data) {
-            var d = new Date();
-            $('#mensajes')
-                .prepend('<p class="text-success"><strong>[' +
-                         d.toLocaleString() + ']</strong> ' + data['mensaje'] +
-                         '</p>');
-            if (tab_actual != 'mensajes') {
-              mensajes_no_leidos++;
-              $('#mensajes_cuenta')
-                  .html('<span class="badge badge-info">' + mensajes_no_leidos +
-                        '</span>');
-            }
-          });
-
-      $('#compilar')
-          .click(function(event) {
-            compile();
-            editor.focus();
-          });
-
-      function futuro() {
-        $('#worldclean').attr('disabled', 'disabled');
-        $('#ejecutar').attr('disabled', 'disabled');
-        $('#paso').attr('disabled', 'disabled');
-        $('#futuro').attr('disabled', 'disabled');
-        $('#evaluacion').attr('disabled', 'disabled');
-
-        if (editor.numBreakpoints) {
-          while (mundo.runtime.step()) {
-            var markers =
-                editor.lineInfo(mundo.runtime.state.line).gutterMarkers;
-            if (markers && markers.breakpoints) {
-              $('#mensajes')
-                  .trigger('info', {
-                    'mensaje': 'Breakpoint en la línea ' +
-                                   (mundo.runtime.state.line + 1)
-                  });
-              $('#ejecutar em').removeClass('icon-pause').addClass('icon-play');
-              $('#worldclean').removeAttr('disabled');
-              $('#ejecutar').removeAttr('disabled');
-              $('#paso').removeAttr('disabled');
-              $('#futuro').removeAttr('disabled');
-              $('#evaluacion').removeAttr('disabled');
-              break;
-            }
-          }
-        } else {
-          mundo.runtime.disableStackEvents = true;
-          while (mundo.runtime.step())
-            ;
-          mundo.runtime.disableStackEvents = false;
-        }
-        highlightCurrentLine();
-        wRender.paint(mundo, canvas.width, canvas.height, {track_karel: true});
-        mensaje_final();
-        // Aún no se permite editar el mundo, pero se podrá si se regresa a su
-        // estado original.
+      $('#compilar').click(function(event) {
+        compile();
         editor.focus();
-        $('#worldclean').removeAttr('disabled');
-      }
-
-      function mensaje_final() {
-        if (mundo.runtime.state.error) {
-          $('#mensajes')
-              .trigger('error',
-                       {mensaje: ERROR_CODES[mundo.runtime.state.error]});
-          return;
-        }
-
-        conteo = '';
-        if (mundo.dumps[World.DUMP_MOVE])
-          conteo = conteo + ' avanza..........' +
-                   mundo.runtime.state.moveCount + '\n';
-        if (mundo.dumps[World.DUMP_LEFT])
-          conteo = conteo + ' gira-izquierda..' +
-                   mundo.runtime.state.turnLeftCount + '\n';
-        if (mundo.dumps[World.DUMP_PICK_BUZZER])
-          conteo = conteo + ' coge-zumbador...' +
-                   mundo.runtime.state.pickBuzzerCount + '\n';
-        if (mundo.dumps[World.DUMP_LEAVE_BUZZER])
-          conteo = conteo + ' deja-zumbador...' +
-                   mundo.runtime.state.leaveBuzzerCount;
-        if (conteo != '')
-          conteo = '<pre> Instrucciones ejecutadas:\n' + conteo + '</pre>';
-
-        $('#mensajes')
-            .trigger('success', {mensaje: 'Ejecución terminada!' + conteo});
-
-        mensaje_validacion();
-      }
-
-      function mensaje_validacion() {
-        mundo.postValidate(validatorCallbacks)
-            .then(
-                function(didValidation) {
-                  if (didValidation)
-                    $('#mensajes')
-                        .trigger('success',
-                                 {'mensaje': 'La solución es correcta'});
-                },
-                function(message) {
-                  $('#mensajes')
-                      .trigger('error', {
-                        'mensaje': 'La solución es incorrecta' +
-                                       (message ? ': ' + message : '')
-                      });
-                });
-      }
-
-      $('#futuro')
-          .click(function(event) {
-            if (!mundo_editable) {
-              futuro();
-              return;
-            }
-
-            var compiled = compile();
-            if (compiled != null) {
-              $('#ejecutar').trigger('lock');
-              mundo.reset();
-              mundo.runtime.load(compiled);
-              mundo.preValidate(validatorCallbacks)
-                  .then(
-                      function(didValidation) {
-                        if (didValidation) {
-                          $('#mensajes')
-                              .trigger(
-                                  'success',
-                                  {'mensaje': 'La validación fue exitosa'});
-                        }
-                        mundo.runtime.start();
-
-                        futuro();
-                      },
-                      function(message) {
-                        $('#mensajes')
-                            .trigger('error', {
-                              'mensaje': 'La validación falló' +
-                                             (message ? ': ' + message : '')
-                            });
-                        compiled = null;
-                        $('#ejecutar').trigger('unlock');
-                      });
-            }
-          });
-
-      $('#save_out')
-          .click(function(event) {
-            var compiled = compile();
-            if (compiled == null) {
-              $('#guardar_salida').html(COMPILATION_ERROR);
-              return;
-            }
-            $('#ejecutar').trigger('lock');
-            mundo.reset();
-            mundo.runtime.load(compiled);
-            mundo.runtime.start();
-            mundo.runtime.disableStackEvents = true;
-            while (mundo.runtime.step())
-              ;
-            mundo.runtime.disableStackEvents = false;
-            wRender.paint(mundo, canvas.width, canvas.height,
-                          {track_karel: true});
-            if (mundo.runtime.state.error) {
-              $('#mensajes')
-                  .trigger('error',
-                           {mensaje: ERROR_CODES[mundo.runtime.state.error]});
-              $('#guardar_salida')
-                  .html(htmlEscape(ERROR_CODES[mundo.runtime.state.error]));
-            } else {
-              $('#mensajes')
-                  .trigger('success', {mensaje: 'Ejecución terminada!'});
-              mensaje_validacion();
-              $('#guardar_salida').html(htmlEscape(mundo.output()));
-            }
-            highlightCurrentLine();
-            // Aún no se permite editar el mundo, pero se podrá si se regresa a
-            // su estado original.
-            editor.focus();
-            $('#ejecutar').attr('disabled', 'disabled');
-            $('#worldclean').removeAttr('disabled');
-            var blob = new Blob([mundo.output()], {'type': 'text/xml'});
-            $('#guardar_descargar')
-                .attr('href', window.URL.createObjectURL(blob))
-                .attr('download', 'mundo.out');
-          });
-
-      $('#ejecutar')
-          .bind('lock', function(evt) {
-            // Bloquea los controles de ejecución y edición
-            mundo_editable = false;  // Previene ediciones del mundo
-            $('#compilar').attr('disabled', 'disabled');
-            $('#futuro').attr('disabled', 'disabled');
-            $('#evaluacion').attr('disabled', 'disabled');
-            $('#quitar_zumbadores').attr('disabled', 'disabled');
-            $('#mochila').attr('disabled', 'disabled');
-            $('#filas').attr('disabled', 'disabled');
-            $('#columnas').attr('disabled', 'disabled');
-            $('#inf_zumbadores').attr('disabled', 'disabled');
-            $('#paso').attr('disabled', 'disabled');
-            $('#worldclean').attr('disabled', 'disabled');
-            $('#ejecutar em').removeClass('icon-play').addClass('icon-pause');
-            $('#posicion_karel').attr('disabled', 'disabled');
-            $('#orientacion_karel').attr('disabled', 'disabled');
-            $('#mochila_karel').attr('disabled', 'disabled');
-            $('#universo').attr('disabled', 'disabled');
-            $('#dump_avanza').attr('disabled', 'disabled');
-            $('#dump_gira_izquierda').attr('disabled', 'disabled');
-            $('#dump_coge_zumbador').attr('disabled', 'disabled');
-            $('#dump_deja_zumbador').attr('disabled', 'disabled');
-
-            editor.setOption('readOnly', true);
-          });
-
-      $('#ejecutar')
-          .bind('unlock', function(evt) {
-            // Desbloquea los controles de ejecución
-            mundo_editable = true;  // Previene ediciones del mundo
-            $('#compilar').removeAttr('disabled');
-            $('#ejecutar').removeAttr('disabled');
-            $('#futuro').removeAttr('disabled');
-            $('#evaluacion').removeAttr('disabled');
-            $('#quitar_zumbadores').removeAttr('disabled');
-            $('#mochila').removeAttr('disabled');
-            $('#filas').removeAttr('disabled');
-            $('#columnas').removeAttr('disabled');
-            $('#inf_zumbadores').removeAttr('disabled');
-            $('#paso').removeAttr('disabled');
-            $('#worldclean').removeAttr('disabled');
-            $('#ejecutar').removeAttr('disabled');
-            $('#ejecutar em').removeClass('icon-pause').addClass('icon-play');
-            $('#posicion_karel').removeAttr('disabled');
-            $('#orientacion_karel').removeAttr('disabled');
-            $('#mochila_karel').removeAttr('disabled');
-            $('#universo').removeAttr('disabled');
-            $('#dump_avanza').removeAttr('disabled');
-            $('#dump_gira_izquierda').removeAttr('disabled');
-            $('#dump_coge_zumbador').removeAttr('disabled');
-            $('#dump_deja_zumbador').removeAttr('disabled');
-
-            editor.setOption('readOnly', false);
-          });
+      });
 
       $('#ejecutar')
           .click(function(event) {
@@ -747,7 +332,6 @@ $(document)
               $('#ejecutar em').removeClass('icon-pause').addClass('icon-play');
               $('#worldclean').removeAttr('disabled');
               $('#paso').removeAttr('disabled');
-              $('#futuro').removeAttr('disabled');
               $('#evaluacion').removeAttr('disabled');
             }
           });
@@ -776,7 +360,6 @@ $(document)
                         mundo.runtime.start();
                         $('#paso').removeAttr('disabled');
                         $('#worldclean').removeAttr('disabled');
-                        $('#futuro').removeAttr('disabled');
                         $('#evaluacion').removeAttr('disabled');
                         $('#ejecutar em')
                             .removeClass('icon-pause')
@@ -795,44 +378,6 @@ $(document)
             }
           });
 
-      $('#retraso_minus')
-          .click(function() {
-            var valor = $('#retraso_txt').val() * 1;
-            if (valor >= 50) {
-              valor -= 50;
-              $('#retraso_txt').val(valor);
-              if (interval) {
-                clearInterval(interval);
-                interval = setInterval(step, $('#retraso_txt').val());
-              }
-            }
-          });
-
-      $('#retraso_plus')
-          .click(function() {
-            var valor = $('#retraso_txt').val() * 1;
-            if (valor < 1000) {
-              valor += 50;
-              $('#retraso_txt').val(valor);
-              if (interval) {
-                clearInterval(interval);
-                interval = setInterval(step, $('#retraso_txt').val());
-              }
-            }
-          });
-
-      $('#retraso_txt')
-          .blur(function(event) {
-            var valor = $('#retraso_txt').val() * 1;
-            if (valor < 0 || valor > 1000) {
-              $('#retraso_txt').val(500);
-              if (interval) {
-                clearInterval(interval);
-                interval = setInterval(step, $('#retraso_txt').val());
-              }
-            }
-          });
-
       function guardarMochila() {
         var valor = parseInt($('#mochila').val(), 10);
         if (Number.isNaN(valor) || valor < 0 || valor > 65534) {
@@ -842,41 +387,9 @@ $(document)
         $('#xmlMundo').html(mundo.save());
       }
 
-      $('#mochila')
-          .keyup(guardarMochila)
-          .blur(function() {
+      $('#mochila').keyup(guardarMochila).blur(function() {
             guardarMochila();
             $('#mochila').val(mundo.bagBuzzers);
-          });
-
-      $('#codeload')
-          .click(function(event) {
-            var file = document.createElement('input');
-            file.type = 'file';
-            file.addEventListener('change', function(evt) {
-              var files = evt.target.files;  // FileList object
-
-              // Loop through the FileList and render image files as thumbnails.
-              for (var i = 0, f; f = files[i]; i++) {
-                // Only process text files.
-                if (f.type &&
-                    !(f.type.match('text.*') ||
-                      f.type == 'application/javascript')) {
-                  continue;
-                }
-
-                var reader = new FileReader();
-
-                // Closure to capture the file information.
-                reader.onload = (function(theFile) {
-                  return function(e) { editor.setValue(reader.result); };
-                })(f);
-
-                // Read in the file as a data URL.
-                reader.readAsText(f);
-              }
-            });
-            file.click();
           });
 
       $('#codesave')
@@ -887,48 +400,6 @@ $(document)
             $('#guardar_descargar')
                 .attr('href', window.URL.createObjectURL(blob))
                 .attr('download', 'karel.txt');
-          });
-
-      $('#worldload')
-          .click(function(event) {
-            var file = document.createElement('input');
-            file.type = 'file';
-            file.addEventListener('change', function(evt) {
-              var files = evt.target.files;  // FileList object
-
-              // Loop through the FileList and render image files as thumbnails.
-              for (var i = 0, f; f = files[i]; i++) {
-                // Only process text files.
-                if (f.type && !f.type.match('text.*')) {
-                  continue;
-                }
-
-                var reader = new FileReader();
-
-                // Closure to capture the file information.
-                reader.onload = (function(theFile) {
-                  return function(e) {
-                    $('script#xmlMundo').html(reader.result);
-                    $('#worldclean').click();
-                  };
-                })(f);
-
-                // Read in the file as a data URL.
-                reader.readAsText(f);
-              }
-            });
-            file.click();
-          });
-
-      $('#worldsave')
-          .click(function(event) {
-            $('#guardar_modal').modal('show');
-            $('#guardar_salida').html(htmlEscape($('script#xmlMundo').html()));
-            var blob =
-                new Blob([$('script#xmlMundo').html()], {'type': 'text/xml'});
-            $('#guardar_descargar')
-                .attr('href', window.URL.createObjectURL(blob))
-                .attr('download', 'mundo.in');
           });
 
       $('#worldclean')
@@ -1043,76 +514,6 @@ $(document)
             }
             if ($('#dump_deja_zumbador').hasClass('active')) {
               $('#dump_deja_zumbador').button('toggle');
-            }
-          });
-
-      $('#evaluacion')
-          .click(function(event) { $('#evaluacion_modal') .modal('show'); });
-
-      $('body')
-          .keyup(function(event) {
-            var repaint = false;
-            var saveWorld = false;
-            var tag = event.target.tagName.toLowerCase();
-            // globals
-            if (event.which == 27) {
-              $('#wcontext_menu').css('display', 'none');
-            }
-            // not in the editor
-            if (tag != 'input' && tag != 'textarea' && mundo_editable) {
-              repaint = true;
-              saveWorld = true;
-              if (event.which == 37) {
-                wRender.moveWest();
-                saveWorld = false;
-              } else if (event.which == 38) {
-                wRender.moveNorth();
-                saveWorld = false;
-              } else if (event.which == 39) {
-                wRender.moveEast();
-                saveWorld = false;
-              } else if (event.which == 40) {
-                wRender.moveSouth();
-                saveWorld = false;
-              } else if (currentCell && event.which >= 96 &&
-                         event.which <= 105) {
-                mundo.setBuzzers(currentCell.row, currentCell.column,
-                                 event.which - 96);
-              } else if (currentCell && event.which >= 48 &&
-                         event.which <= 57) {
-                mundo.setBuzzers(currentCell.row, currentCell.column,
-                                 event.which - 48);
-              } else if (currentCell && event.which == 73) {  // I
-                mundo.setBuzzers(currentCell.row, currentCell.column, -1);
-              } else if (currentCell && event.which == 82) {  // R
-                mundo.setBuzzers(currentCell.row, currentCell.column,
-                                 Math.random() * 100);
-              } else if (currentCell && event.which == 78) {  // N
-                modalPrompt('¿Cuántos zumbadores?', '0')
-                    .then(function(response) {
-                      mundo.setBuzzers(currentCell.row, currentCell.column,
-                                       response);
-                      wRender.paint(mundo, canvas.width, canvas.height,
-                                    {editable: mundo_editable});
-                      $('#xmlMundo').html(mundo.save());
-                    });
-              } else if (currentCell && event.which == 68) {  // D
-                mundo.toggleDumpCell(currentCell.row, currentCell.column);
-              } else if (currentCell &&
-                         (event.which == 75 || event.which == 105)) {  // K
-                mundo.move(currentCell.row, currentCell.column);
-                mundo.rotate();
-              } else {
-                repaint = false;
-              }
-            }
-
-            if (repaint) {
-              wRender.paint(mundo, canvas.width, canvas.height,
-                            {editable: mundo_editable});
-            }
-            if (saveWorld) {
-              $('#xmlMundo').html(mundo.save());
             }
           });
 
@@ -1279,66 +680,6 @@ $(document)
           .on('dragend', function(event) {
             $(document.body).css('cursor', 'auto');
             currentCell = undefined;
-          });
-
-      $('#filas')
-          .blur(function(event) {
-            var valor = parseInt($(this).val());
-            if (0 > valor || valor > 10000 || valor == h ||
-                Number.isNaN(valor)) {
-              $(this).val(h);
-              return;
-            }
-            h = valor;
-            mundo.resize(w, h);
-            wRender = new WorldRender(context, h, w);
-            wRender.paint(mundo, canvas.width, canvas.height,
-                          {editable: true, track_karel: true});
-            $('#xmlMundo').html(mundo.save());
-          });
-
-      $('#columnas')
-          .blur(function(event) {
-            var valor = parseInt($(this).val());
-            if (0 > valor || valor > 10000 || valor == w ||
-                Number.isNaN(valor)) {
-              $(this).val(w);
-              return;
-            }
-            w = valor;
-            mundo.resize(w, h);
-            wRender = new WorldRender(context, h, w);
-            wRender.paint(mundo, canvas.width, canvas.height,
-                          {editable: true, track_karel: true});
-            $('#xmlMundo').html(mundo.save());
-          });
-
-      $('#inf_zumbadores')
-          .click(function(event) {
-            if ($(this).hasClass('active')) {  // ya hay infinitos
-              mundo.setBagBuzzers(zumbadores_anterior);
-              $('#mochila').val(zumbadores_anterior);
-              $(this).removeClass('active');
-              $('#mochila').removeAttr('disabled');
-            } else {  // hay finitos
-              zumbadores_anterior = $('#mochila').val();
-              mundo.setBagBuzzers(-1);
-              $(this).addClass('active');
-              $('#mochila').attr('disabled', 1);
-            }
-            $('#xmlMundo').html(mundo.save());
-          });
-
-      $('#quitar_zumbadores')
-          .click(function(event) {
-            if ($(this).hasClass('active')) {  // ya hay infinitos
-              borrar_zumbadores = false;
-              $(this).removeClass('active');
-            } else {  // hay finitos
-              borrar_zumbadores = true;
-              $(this).addClass('active');
-            }
-            $('#xmlMundo').html(mundo.save());
           });
 
       $('#go_home')
