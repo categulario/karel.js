@@ -280,16 +280,6 @@ $(document)
         }
       }
 
-      $(window).resize(function(event) {
-        $('#world').attr('width', $('#world').width());
-        wRender.paint(mundo, canvas.width, canvas.height, {editable: mundo_editable});
-      });
-
-      $('#compilar').click(function(event) {
-        compile();
-        editor.focus();
-      });
-
       $('#ejecutar')
           .click(function(event) {
             if ($('#ejecutar em').hasClass('icon-play')) {
